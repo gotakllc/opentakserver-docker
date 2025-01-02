@@ -1,4 +1,3 @@
-```markdown
 # OpenTAKServer Docker
 
 This repository provides a Docker-based setup for **[OpenTAKServer](https://opentakserver.io/)**, bundling the official Ubuntu Installer Script, RabbitMQ, MediaMTX, Nginx, and more, all in a single container. It aims to offer a quick way to spin up an all-in-one OpenTAKServer environment for testing or development.
