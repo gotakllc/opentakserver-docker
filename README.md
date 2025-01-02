@@ -73,7 +73,7 @@ A sample project layout might look like this:
 3. Run the build command:
 
    ```bash
-   docker-compose build
+   docker build -t opentakserver .
    ```
 
    This may take a while, as it installs a full Ubuntu environment plus all OTS dependencies.

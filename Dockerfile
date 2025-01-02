@@ -48,30 +48,31 @@
     # 5) Expose ports commonly used by OTS
     #    (Below is a superset from your provided list—enable as needed)
     # --------------------------------------------------------
-    EXPOSE 80      # Nginx HTTP
-    EXPOSE 443     # Nginx HTTPS
-    EXPOSE 1883    # RabbitMQ MQTT
-    EXPOSE 1935    # MediaMTX RTMP
-    EXPOSE 1936    # MediaMTX RTMPS
-    EXPOSE 5672    # RabbitMQ AMQP
-    EXPOSE 8000    # MediaMTX RTP (UDP)
-    EXPOSE 8001    # MediaMTX RTCP (UDP)
-    EXPOSE 8080    # Nginx Proxy -> OTS 8081
-    EXPOSE 8081    # OTS direct (Loopback in VM, but we’ll expose just in case)
-    EXPOSE 8088    # OTS TCP CoT
-    EXPOSE 8089    # OTS SSL CoT
-    EXPOSE 8189    # MediaMTX WebRTC (UDP)
-    EXPOSE 8443    # Nginx HTTPS Proxy -> OTS 8081
-    EXPOSE 8446    # Nginx Cert Enrollment -> OTS 8081
-    EXPOSE 8322    # MediaMTX RTSP(S)
-    EXPOSE 8554    # MediaMTX RTSP
-    EXPOSE 8883    # RabbitMQ MQTT (Encrypted)
-    EXPOSE 8888    # MediaMTX HLS
-    EXPOSE 8889    # MediaMTX WebRTC
-    EXPOSE 8890    # MediaMTX SRT (UDP)
-    EXPOSE 9997    # MediaMTX API (Loopback typically)
-    EXPOSE 25672   # RabbitMQ Federation
-    EXPOSE 64738   # Mumble (if installed), but we forcibly disabled it
+    EXPOSE 80
+    EXPOSE 443
+    EXPOSE 1883
+    EXPOSE 1935
+    EXPOSE 1936
+    EXPOSE 5672
+    EXPOSE 8000/udp
+    EXPOSE 8001/udp
+    EXPOSE 8080
+    EXPOSE 8081
+    EXPOSE 8088
+    EXPOSE 8089
+    EXPOSE 8189
+    EXPOSE 8443
+    EXPOSE 8446
+    EXPOSE 8322
+    EXPOSE 8554
+    EXPOSE 8883
+    EXPOSE 8888
+    EXPOSE 8889
+    EXPOSE 8890/udp
+    EXPOSE 9997
+    EXPOSE 25672
+    EXPOSE 64738
+    EXPOSE 64738/udp
     
     # --------------------------------------------------------
     # 6) Container start command
