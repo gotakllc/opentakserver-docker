@@ -1,23 +1,29 @@
-#!/usr/bin/env bash
-# start_all.sh
-# 
-# Very simplistic approach: start each background service,
-# then tail logs (or wait in a loop) so the container doesn't exit.
+#!/bin/bash
 
+# Ensure directories exist with proper permissions
+sudo mkdir -p /home/ots/ots/ca /home/ots/ots/logs
+sudo chown -R ots:ots /home/ots/ots
+
+# Ensure Nginx has access to certificates
+sudo mkdir -p /home/ots/ots/ca/certs/opentakserver
+sudo chown -R www-data:www-data /home/ots/ots/ca/certs
+sudo chmod 644 /home/ots/ots/ca/certs/opentakserver/opentakserver.pem
+sudo chmod 644 /home/ots/ots/ca/certs/opentakserver/opentakserver.nopass.key
+sudo chmod -R 755 /home/ots/ots/ca/certs/opentakserver
+
+# Start RabbitMQ and wait for it to be ready
 echo "Starting RabbitMQ..."
 sudo service rabbitmq-server start
+sleep 5  # Give RabbitMQ time to initialize
 
+# Start Nginx
 echo "Starting Nginx..."
+sudo nginx -t  # Test config first
 sudo service nginx start
 
+# Start MediaMTX
 echo "Starting MediaMTX..."
 sudo service mediamtx start
 
-echo "Starting OpenTAKServer..."
-sudo service opentakserver start
-
-echo "All services started. Tailing system logs..."
-
-# Simple approach: follow syslog to keep the container alive
-# or you can do 'tail -f /var/log/some_service.log'
-tail -F /var/log/syslog
+# Keep container running and show logs
+tail -f /home/ots/ots/logs/opentakserver.log /var/log/rabbitmq/rabbit@*.log /var/log/nginx/*.log

@@ -6,15 +6,12 @@ services:
       context: .
       pull: false
     container_name: opentakserver
-    # Re-create from scratch if needed:
-    # image: your-registry/opentakserver:latest
-    # Or push the built image to a registry, then reference here:
+    volumes:
+      - ots_certs:/home/ots/ots/ca/certs
     ports:
       - "80:80"
       - "443:443"
       - "1883:1883"
-      - "1935:1935"
-      - "1936:1936"
       - "5672:5672"
       - "8000:8000/udp"
       - "8001:8001/udp"
@@ -23,16 +20,31 @@ services:
       - "8089:8089"
       - "8443:8443"
       - "8446:8446"
-      - "8322:8322"
-      - "8554:8554"
       - "8883:8883"
-      - "8888:8888"
-      - "8889:8889"
-      - "8890:8890/udp"
       - "9997:9997"
       - "25672:25672"
       - "64738:64738"
       - "64738:64738/udp"
-    # ^ Not all ports are strictly necessary; pick and choose as needed.
-    # The container will start with the "CMD" from the Dockerfile (start_all.sh)
     restart: unless-stopped
+
+  mediamtx:
+    image: bluenviron/mediamtx:latest
+    container_name: mediamtx
+    volumes:
+      - ots_certs:/certs:ro
+      - ./mediamtx.yml:/mediamtx.yml:ro
+    ports:
+      - "1935:1935"  # RTMP
+      - "1936:1936"  # RTMPS
+      - "8322:8322"  # RTSP(S)
+      - "8554:8554"  # RTSP
+      - "8888:8888"  # HLS
+      - "8889:8889"  # WebRTC
+      - "8890:8890/udp"  # SRT
+      - "8189:8189/udp"  # WebRTC UDP
+    environment:
+      - MTX_PROTOCOLS=tcp
+    restart: unless-stopped
+
+volumes:
+  ots_certs:

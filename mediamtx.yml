@@ -1,0 +1,20 @@
+# MediaMTX configuration for OpenTAK
+paths:
+  all:
+    readUser: ots
+    readPass: ots
+    publishUser: ots
+    publishPass: ots
+
+protocols:
+  rtsp: yes
+  rtmp: yes
+  hls: yes
+  webrtc: yes
+
+encryption: strict
+serverCert: /certs/opentakserver/opentakserver.pem
+serverKey: /certs/opentakserver/opentakserver.nopass.key
+
+webrtc:
+  iceServers: [stun:stun.l.google.com:19302]
