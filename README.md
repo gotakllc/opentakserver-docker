@@ -1,192 +1,149 @@
 # OpenTAKServer Docker
 
-This repository provides a Docker-based setup for **[OpenTAKServer](https://opentakserver.io/)**, bundling the official Ubuntu Installer Script, RabbitMQ, MediaMTX, Nginx, and more, all in a single container. It aims to offer a quick way to spin up an all-in-one OpenTAKServer environment for testing or development.
-
-> **Important**  
-> - The official Ubuntu installer is **interactive** and expects user inputs. Here, we’ve forcibly disabled certain prompts (e.g., ZeroTier, Mumble) to avoid blocking the Docker build process.  
-> - **Systemd services** (e.g., `opentakserver`, `rabbitmq-server`, `nginx`, etc.) are typically not run inside Docker containers via `systemd`. This setup uses a simple `start_all.sh` script (or any other supervisor approach) to start them.
-
----
-
-## Table of Contents
-
-1. [Features](#features)  
-2. [Prerequisites](#prerequisites)  
-3. [Directory Structure](#directory-structure)  
-4. [Usage](#usage)  
-   - [Building the Image](#building-the-image)  
-   - [Running the Container](#running-the-container)  
-   - [Stopping & Removing Containers](#stopping--removing-containers)  
-5. [Configuration](#configuration)  
-   - [Exposed Ports](#exposed-ports)  
-   - [Adjusting ZeroTier/Mumble Installs](#adjusting-zerotiermumble-installs)  
-6. [Troubleshooting](#troubleshooting)  
-7. [Further Reading](#further-reading)  
-8. [License](#license)
-
----
+This repository provides a Docker-based setup for **[OpenTAKServer](https://opentakserver.io/)**, bundling the official Ubuntu Installer Script, RabbitMQ, MediaMTX, Nginx, and more in a containerized environment. It aims to offer a quick way to spin up an OpenTAKServer environment with proper service monitoring and SSL certificate handling.
 
 ## Features
 
-- **Automated OTS Installation**: Leverages the official [Ubuntu Installer Script](https://i.opentakserver.io/ubuntu_installer) to install OpenTAKServer and dependencies.  
-- **All-in-One Image**: RabbitMQ, MediaMTX, Nginx, and OTS run together in a single container.  
-- **Simple Startup**: A basic script (`start_all.sh`) starts all necessary services in the foreground.  
-- **Extensive Port Exposure**: Exposes the default ports used by OTS and related services.  
+- **Automated OTS Installation**: Uses the official [Ubuntu Installer Script](https://github.com/brian7704/OpenTAKServer-Installer)
+- **Service Monitoring**: Includes watchdog script to ensure OpenTAKServer stays running
+- **MediaMTX Integration**: Separate container for streaming functionality with proper SSL certificate sharing
+- **Automated Certificate Management**: Proper handling of SSL certificates between services
+- **Non-Interactive Installation**: Automated responses for ZeroTier and Mumble prompts
 
----
+## Quick Start
 
-## Prerequisites
-
-- **Docker**: v19+ recommended  
-- **Docker Compose**: v1.29+ or Docker Compose Plugin v2+  
-- At least 2 GB of memory available to the container (the combination of services can be resource-intensive).
-
----
-
-## Directory Structure
-
-A sample project layout might look like this:
-
-```
-.
-├── docker-compose.yml
-├── Dockerfile
-├── README.md
-└── start_all.sh
+1. Clone this repository:
+```bash
+git clone <repository-url>
+cd opentakserver-docker
 ```
 
-- **Dockerfile**  
-  Defines the container environment and runs the official OTS Ubuntu installer script.  
-- **start_all.sh**  
-  Simple script to start all services (RabbitMQ, Nginx, MediaMTX, OpenTAKServer) in the foreground for Docker.  
-- **docker-compose.yml**  
-  Declares how to build and run your container with the necessary port mappings.
-
----
-
-## Usage
-
-### Building the Image
-
-1. **Clone this repository** (or copy the Dockerfile, `docker-compose.yml`, and `start_all.sh` into your own folder).
-2. Open a terminal in that folder.
-3. Run the build command:
-
-   ```bash
-   docker build -t opentakserver .
-   ```
-
-   This may take a while, as it installs a full Ubuntu environment plus all OTS dependencies.
-
-### Running the Container
-
-Once built, start the container:
-
+2. Build and start the containers:
 ```bash
 docker-compose up -d
 ```
 
-This starts your container in detached mode. The `Dockerfile` and `docker-compose.yml` will:
-
-1. Create a non-root user `ots` (with sudo rights) in the container.  
-2. Download and patch the official installer script to avoid blocking prompts.  
-3. Install all necessary packages (Python, RabbitMQ, Nginx, MediaMTX, etc.).  
-4. Run `start_all.sh` to launch services inside the container.
-
-**Check logs**:
-
+3. Check the logs:
 ```bash
 docker-compose logs -f
 ```
 
-Look for lines indicating that `opentakserver`, `rabbitmq-server`, `nginx`, and `mediamtx` are running.
+## Components
 
-### Stopping & Removing Containers
+- **OpenTAKServer Container**:
+  - Ubuntu 24.10 base
+  - OpenTAKServer with all dependencies
+  - RabbitMQ message broker
+  - Nginx reverse proxy
+  - Service watchdog
 
-Stop the running container:
-
-```bash
-docker-compose stop
-```
-
-Remove the container if needed:
-
-```bash
-docker-compose rm
-```
-
-Remove images as well (to rebuild from scratch):
-
-```bash
-docker-compose down --rmi all
-```
-
----
+- **MediaMTX Container**:
+  - Latest MediaMTX version
+  - Shared SSL certificates
+  - Multiple streaming protocol support
 
 ## Configuration
 
-### Exposed Ports
+### Volumes
 
-Below is a subset of the **default** ports exposed by the container (based on the script and your config). Refer to the `docker-compose.yml` file for the complete list.
+- `ots_certs`: Shared volume for SSL certificates between containers
 
-| Port   | Service       | Protocol  | Purpose                                                                 |
-|--------|---------------|-----------|-------------------------------------------------------------------------|
-| 80     | Nginx         | TCP       | Unencrypted HTTP traffic to OTS UI                                      |
-| 443    | Nginx         | TCP       | Encrypted HTTPS traffic to OTS UI                                       |
-| 1883   | RabbitMQ      | TCP       | MQTT (unencrypted), used by Meshtastic                                  |
-| 1935   | MediaMTX      | TCP       | RTMP streaming                                                          |
-| 5672   | RabbitMQ      | TCP       | AMPQ clients, typically internal                                        |
-| 8080   | Nginx         | TCP       | Proxy for HTTP requests to OTS port 8081                                |
-| 8081   | OpenTAKServer | TCP       | Internal OTS listener (might be loopback in a VM)                       |
-| 8088   | OpenTAKServer | TCP       | TCP CoT streaming                                                       |
-| 8089   | OpenTAKServer | TCP       | SSL CoT streaming                                                       |
-| 8443   | Nginx         | TCP       | HTTPS proxy for OTS port 8081                                           |
-| 8446   | Nginx         | TCP       | Certificate enrollment proxy to OTS                                     |
-| 8883   | RabbitMQ      | TCP       | Encrypted MQTT port (Meshtastic)                                        |
-| 64738  | Mumble Server | TCP/UDP   | Mumble voice streams (disabled in script by default)                    |
-| ...    | ...           | ...       | ...                                                                     |
+### Environment Variables
 
-*You can modify which ports get mapped in `docker-compose.yml` according to your needs.*
+Default environment variables in the containers:
+```env
+DEBIAN_FRONTEND=noninteractive
+TZ=America/New_York
+PYTHONUNBUFFERED=1
+EVENTLET_NO_GREENDNS=yes
+FLASK_APP=opentakserver.app
+FLASK_ENV=production
+```
 
-### Adjusting ZeroTier/Mumble Installs
+### Ports
 
-In this setup, we **removed** the interactive prompts for ZeroTier and Mumble installation. If you do want to install these services, you’ll need to:
+Below is the complete list of ports exposed by the containers:
 
-- Remove or comment out the lines in `Dockerfile` that use `sed -i` to delete the relevant script blocks.  
-- Provide an automated way for the script to handle `read -p` prompts (e.g., set environment variables or integrate a pseudo-TTY approach).  
+| Port      | Service       | Protocol  | Purpose                                          |
+|-----------|---------------|-----------|--------------------------------------------------|
+| 80        | Nginx         | TCP       | HTTP traffic to OTS UI                           |
+| 443       | Nginx         | TCP       | HTTPS traffic to OTS UI                          |
+| 1883      | RabbitMQ     | TCP       | MQTT (unencrypted)                               |
+| 1935      | MediaMTX     | TCP       | RTMP streaming                                    |
+| 1936      | MediaMTX     | TCP       | RTMPS (encrypted RTMP)                           |
+| 5672      | RabbitMQ     | TCP       | AMQP protocol                                    |
+| 8000      | MediaMTX     | UDP       | RTP streaming                                    |
+| 8001      | MediaMTX     | UDP       | RTCP streaming                                   |
+| 8080      | Nginx        | TCP       | HTTP proxy to OTS                                |
+| 8081      | OTS          | TCP       | Direct OTS access                                |
+| 8088      | OTS          | TCP       | TCP CoT                                          |
+| 8089      | OTS          | TCP       | SSL CoT                                          |
+| 8189      | MediaMTX     | UDP       | WebRTC                                          |
+| 8443      | Nginx        | TCP       | HTTPS proxy to OTS                               |
+| 8446      | Nginx        | TCP       | Certificate enrollment                           |
+| 8322      | MediaMTX     | TCP       | RTSP(S)                                         |
+| 8554      | MediaMTX     | TCP       | RTSP                                            |
+| 8883      | RabbitMQ     | TCP       | MQTT (encrypted)                                 |
+| 8888      | MediaMTX     | TCP       | HLS                                             |
+| 8889      | MediaMTX     | TCP       | WebRTC                                          |
+| 8890      | MediaMTX     | UDP       | SRT                                             |
+| 9997      | MediaMTX     | TCP       | API                                             |
+| 25672     | RabbitMQ     | TCP       | Inter-node and CLI tool communication           |
+| 64738     | Mumble       | TCP/UDP   | Voice communication (if enabled)                 |
 
----
+All these ports are defined in the `docker-compose.yml` file and can be modified as needed. Note that some ports (like UDP ports) require specific protocol handling in your Docker configuration.
+
+## Service Management
+
+The containers use two main scripts for service management:
+
+- `start_all.sh`: Manages RabbitMQ, Nginx, and MediaMTX services
+- `start_watchdog.sh`: Monitors and auto-restarts OpenTAKServer if needed
 
 ## Troubleshooting
 
-1. **Container Exits Immediately**  
-   - Check for errors in `docker-compose logs`. The start script might have failed if a service refused to start or if the OTS installer encountered an error.
+### Common Issues
 
-2. **Services Not Running**  
-   - In the default approach, we’re calling `sudo service <name> start`. Depending on changes in your distribution or container environment, you may need to adjust or switch to a supervisor approach (e.g., [supervisord](http://supervisord.org/), [s6-overlay](https://github.com/just-containers/s6-overlay), or [runit](https://smarden.org/runit/)).
+1. **Certificate Errors**:
+   - Check permissions on the shared certificate volume
+   - Ensure certificates are in the correct format for Nginx
 
-3. **High Resource Usage**  
-   - Running all of these services in a single container can be resource-heavy. Consider increasing Docker memory limits or splitting services into separate containers.
+2. **Service Start Failures**:
+   - Check logs: `docker-compose logs -f`
+   - Verify service permissions and ownership
+   - Check certificate paths and permissions
 
-4. **SSL/TLS Certificates**  
-   - The script generates a self-signed CA and server certificate. In a real production environment, consider using valid certificates from Let’s Encrypt or another CA.
+3. **OpenTAKServer Crashes**:
+   - The watchdog should automatically restart it
+   - Check logs for specific error messages
 
----
+## Development
 
-## Further Reading
+To modify or extend this setup:
 
-- [OpenTAKServer Official Website](https://opentakserver.io/)  
-- [OpenTAKServer GitHub](https://github.com/AdvancedAviationTeam/OpenTAKServer)  
-- [Docker Documentation](https://docs.docker.com/)  
-- [Docker Compose Documentation](https://docs.docker.com/compose/)  
+1. Edit the Dockerfile or docker-compose.yml
+2. Rebuild the containers:
+```bash
+docker-compose down
+docker-compose build --no-cache
+docker-compose up -d
+```
 
----
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
 
-The Dockerfile and scripts in this repository are distributed under the [MIT License](./LICENSE) (if you choose to include one). The **OpenTAKServer** code and its **Ubuntu Installer Script** are each under their respective licenses. Always refer to their repositories for licensing details.
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Acknowledgments
+
+- OpenTAKServer Team
+- MediaMTX Project
+- Docker Community
 
 ---
 
-> **Disclaimer**: This repository is an unofficial containerization approach for OpenTAKServer. Use it at your own discretion and test thoroughly before deploying to production.
+For more information, visit the [OpenTAKServer website](https://opentakserver.io/).
 ```
